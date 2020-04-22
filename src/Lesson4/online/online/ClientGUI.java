@@ -2,10 +2,12 @@ package Lesson4.online.online;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.CharBuffer;
 
-public class ClientGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler {
+public class ClientGUI extends JFrame implements ActionListener, MouseListener, Thread.UncaughtExceptionHandler {
 //    Отправлять сообщения в лог по нажатию кнопки или по нажатию клавиши Enter.
 //    Создать лог в файле (показать комментарием, где и как Вы планируете писать сообщение в файловый журнал).
 
@@ -17,7 +19,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     private final JTextField tfIPAddress = new JTextField("127.0.0.1");
     private final JTextField tfPort = new JTextField("8189");
     private final JCheckBox cbAlwaysOnTop = new JCheckBox("Always on top", true);
-    private final JTextField tfLogin = new JTextField("ivan");
+    private final JTextField tfLogin = new JTextField("yuriy");
     private final JPasswordField tfPassword = new JPasswordField("123");
     private final JButton btnLogin = new JButton("Login");
 
@@ -27,6 +29,9 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     private final JButton btnSend = new JButton("Send");
 
     private final JList<String> userList = new JList<>();
+
+    private StringBuffer msgBuffer = new StringBuffer("");
+    private char[] buf;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -63,12 +68,35 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         panelBottom.add(btnDisconnect, BorderLayout.WEST);
         panelBottom.add(tfMessage, BorderLayout.CENTER);
         panelBottom.add(btnSend, BorderLayout.EAST);
+        tfMessage.addActionListener(this);
+        btnSend.addMouseListener(this);
 
         add(scrUser, BorderLayout.EAST);
         add(scrLog, BorderLayout.CENTER);
         add(panelTop, BorderLayout.NORTH);
         add(panelBottom, BorderLayout.SOUTH);
         setVisible(true);
+
+//        Запись в файл производится в момент наступления события windowClosing
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                buf = new char[msgBuffer.length()];
+//                из объекта типа StringBuffer msg перекладываем в массив символов
+                msgBuffer.getChars(0, msgBuffer.length(), buf, 0);
+//                открываем поток  FileWrite в блоке try с рессурсами и записываем все msg  из буфера символов в конец
+//                файла
+                try (FileWriter charLog = new FileWriter("CharLog", true)) {
+//                    for (char c : buf) {
+//                        charLog.append(c);
+//                    }
+                    charLog.write(buf);
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+//                super.windowClosing(e);
+            }
+        });
     }
 
     @Override
@@ -76,8 +104,30 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         Object src = e.getSource();
         if (src == cbAlwaysOnTop) {
             setAlwaysOnTop(cbAlwaysOnTop.isSelected());
+        } else if (src == tfMessage) {
+            appendLog();
         } else {
             throw new RuntimeException("Unknown source:" + src);
+        }
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        Object src = e.getSource();
+        if (src == btnSend) {
+            appendLog();
+        } else {
+            throw new RuntimeException("Unknown source:" + src);
+        }
+    }
+
+    private void appendLog() {
+        if (tfMessage.getText().length() > 0) {
+            log.append(tfMessage.getText() + "\n");
+//            сообщения собираются в объект типа StringBuffer
+            msgBuffer.append(tfMessage.getText() + "\n");
+            System.out.println(msgBuffer);
+            tfMessage.setText("");
         }
     }
 
@@ -90,5 +140,25 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
                 t.getName(), e.getClass().getCanonicalName(), e.getMessage(), ste[0]);
         JOptionPane.showMessageDialog(this, msg, "Exception", JOptionPane.ERROR_MESSAGE);
         System.exit(1);
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
     }
 }
